@@ -1,0 +1,43 @@
+PATH
+  remote: .
+  specs:
+    sugester (0.1.1)
+      aws (~> 2.10, >= 2.10.2)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    aws (2.10.2)
+      http_connection
+      uuidtools
+      xml-simple
+    diff-lcs (1.2.5)
+    http_connection (1.4.4)
+    rake (10.5.0)
+    rspec (3.5.0)
+      rspec-core (~> 3.5.0)
+      rspec-expectations (~> 3.5.0)
+      rspec-mocks (~> 3.5.0)
+    rspec-core (3.5.2)
+      rspec-support (~> 3.5.0)
+    rspec-expectations (3.5.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.5.0)
+    rspec-mocks (3.5.0)
+      diff-lcs (>= 1.2.0, < 2.0)
+      rspec-support (~> 3.5.0)
+    rspec-support (3.5.0)
+    uuidtools (2.1.5)
+    xml-simple (1.1.5)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler (~> 1.11)
+  rake (~> 10.0)
+  rspec
+  sugester!
+
+BUNDLED WITH
+   1.11.2

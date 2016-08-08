@@ -1,3 +1,3 @@
-module Sugester
-  VERSION = "0.1.0"
+class Sugester
+  VERSION = "0.1.1"
 end

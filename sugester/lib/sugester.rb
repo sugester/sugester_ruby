@@ -1,7 +1,8 @@
 require "sugester/version"
 
-module Sugester
-  def cokolwiek
+class Sugester
+  def self.cokolwiek x
     puts "siema"
+    x + 1
   end
 end
