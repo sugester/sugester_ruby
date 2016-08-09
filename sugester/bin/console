@@ -11,4 +11,7 @@ require "sugester"
 # Pry.start
 
 require "irb"
+
+::X = Sugester.local
+
 IRB.start
