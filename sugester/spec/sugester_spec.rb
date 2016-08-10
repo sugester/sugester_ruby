@@ -6,7 +6,7 @@ require 'yaml'
 local_test_conf = YAML.load_file("/Users/sugester/projects/sugester_gem/sugester/secret.yml").deep_symbolize_keys
 
 describe Sugester do
-  subject { Sugester.new local_test_conf }
+  subject { Sugester::SugesterAws.new local_test_conf }
 
   describe '#push' do
   #  let(:input) { 1 }
