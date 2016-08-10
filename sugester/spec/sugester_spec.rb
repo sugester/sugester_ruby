@@ -12,7 +12,9 @@ describe Sugester do
   #    expect(output).to eq 2
   #  end
     it 'push' do
-      subject.push "test msg"
+      subject.push "test_msg", nil
+      subject.push "test_msg"
+      subject.push "test_msg", 2
     end
   end
 end
