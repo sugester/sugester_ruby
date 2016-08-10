@@ -7,10 +7,6 @@ class Sugester
 
   attr_accessor :sqs, :config, :url
 
-  def self.local
-    self.new YAML.load_file("/Users/sugester/projects/sugester_gem/sugester/secret.yml").deep_symbolize_keys
-  end
-
   def initialize(config)
     @config = config
     @sqs = Aws::SQS::Client.new @config[:sqs][:config]
@@ -39,6 +35,14 @@ class Sugester
       }
     end
     @sqs.send_message(msg)
+  end
+
+  def self.init_singleton(config)
+    @@singleton = Sugester.new config
+  end
+
+  def self.push *args
+    @@singleton.push *args
   end
 
 end
