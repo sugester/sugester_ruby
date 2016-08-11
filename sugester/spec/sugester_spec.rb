@@ -1,12 +1,9 @@
-
 require 'spec_helper'
 require 'yaml'
-
-
-local_test_conf = YAML.load_file("/Users/sugester/projects/sugester_gem/sugester/secret.yml").deep_symbolize_keys
+secret = YAML.load_file("secret.yml")["secret"]
 
 describe Sugester do
-  subject { Sugester::SugesterAws.new local_test_conf }
+  subject { Sugester::SugesterQueue.new secret }
 
   describe '#push' do
   #  let(:input) { 1 }
@@ -15,10 +12,9 @@ describe Sugester do
   #  it 'hallo world test' do
   #    expect(output).to eq 2
   #  end
-    it 'push' do
-      subject.push "test_msg", nil
-      subject.push "test_msg"
-      subject.push "test_msg", 2
+    it 'activity' do
+      subject.activity 1, "test_msg"
+      subject.activity 2, "test_msg"
     end
   end
 end
@@ -28,12 +24,11 @@ describe Sugester do
 
   describe '#singleton' do
     it 'init_singleton' do
-      subject.init_singleton local_test_conf
+      subject.init_singleton secret
     end
-    it 'push' do
-      subject.push "test_msg", nil
-      subject.push "test_msg"
-      subject.push "test_msg", 2
+    it 'activity' do
+      subject.activity 3, "test_msg_singleton"
+      subject.activity 4, "test_msg_singleton"
     end
   end
 

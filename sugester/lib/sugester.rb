@@ -1,49 +1,59 @@
 require "sugester/version"
 require 'aws-sdk'
 require 'active_support/all'
+require 'digest'
 
 module Sugester
-  class SugesterAws
 
-    attr_accessor :sqs, :config, :url
+  class SugesterQueue
 
-    def initialize(config)
-      @config = config
-      @sqs = Aws::SQS::Client.new @config[:sqs][:config]
-      #@url = @sqs.list_queues.queue_urls.first
-      @url = @config[:sqs][:url]
-      @api_token = @config[:api_token]
-      #@encoded_api_token = Digest::MD5.hexdigest @api_token #for js
+    def self.decrypt(msg)
+      begin
+        cipher = OpenSSL::Cipher.new('AES-128-ECB')
+        cipher.decrypt()
+        cipher.key = "JKLGHJFHGFUOYTIUKYGbhjgvcutytfiCktyD845^8^f6d%df65*I"
+        tempkey = Base64.decode64(URI.decode(msg))
+        crypt = cipher.update(tempkey)
+        crypt << cipher.final()
+      rescue
+        crypt = nil
+      end
+      return crypt
     end
 
-    def push activity_name, client_id = nil
+    def config(property)
+      JSON.parse(SugesterQueue.decrypt(@secret)).deep_symbolize_keys[property]
+    rescue JSON::ParserError => e
+      raise "secret corrupted"
+    end
+
+    def initialize(secret)
+      @secret = secret
+      @sqs = Aws::SQS::Client.new(config(:config))
+    end
+
+    def activity(client_id, activity_name, options = {})
       #TODO assert client_id
       msg = {
-        queue_url: @url,
-        message_body: activity_name,
-        message_attributes: {
-          api_token: {
-            string_value: @api_token,
-            data_type: "String",
-          },
-        },
+        activity: activity_name,
+        client_id: client_id,
+        token: config(:token),
+        prefix: config(:prefix),
       }
-      if client_id
-        msg[:message_attributes][:client_id] = {
-          string_value: client_id.to_s,
-          data_type: "Number",
-        }
-      end
-      @sqs.send_message(msg)
+      #TODO max length
+      @sqs.send_message({
+        queue_url: config(:url),
+        message_body: msg.to_json,
+      })
     end
   end
 
-  def self.init_singleton(config)
-    @@singleton = SugesterAws.new config
+  def self.init_singleton *args
+    @@singleton = SugesterQueue.new *args
   end
 
-  def self.push *args
-    @@singleton.push *args
+  def self.activity *args
+    @@singleton.activity *args
   end
 
 end
