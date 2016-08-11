@@ -1,0 +1,4 @@
+*.sw[op]
+*.gem
+secret.yml
+local.sh
