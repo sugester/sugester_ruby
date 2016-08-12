@@ -1,9 +1,10 @@
 PATH
   remote: .
   specs:
-    sugester (0.3.1)
+    sugester (0.5.0)
       activesupport
       aws-sdk (~> 2)
+      minitest (~> 5.1)
 
 GEM
   remote: https://rubygems.org/
