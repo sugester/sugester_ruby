@@ -4,10 +4,10 @@ require 'digest'
 
 module Sugester
 
-  VERSION = "0.5.1"
+  VERSION = "0.5.2"
 
   def self.assert(msg, v)
-    raise StandardError.new(msg) unless v
+    $stderr.puts("WARNING: #{msg}, sugester #{VERSION}") unless v
   end
   def self.instance_assert(variable_name, variable, *klasses)
     assert(
@@ -72,16 +72,16 @@ module Sugester
     end
 
     def property(client_id, options)
-      options.each do |name, value|
-        Sugester.instance_assert "name", name, String, Symbol
-        #TODO valid value
-      end
+      #options.enum do |name, value|
+      #  Sugester.instance_assert "name", name, String, Symbol
+      #  Sugester.instance_assert "value", value, String, Symbol, Numeric, Time, DateTime, Date
+      #end
       push :property, client_id, {options: options}
     end
 
     def payment(client_id, name, price, date_from, date_to)
-      Sugester.instance_assert "date_from", date_from, Time
-      Sugester.instance_assert "date_to", date_to, Time
+      Sugester.instance_assert "date_from", date_from, Time, Date, DateTime
+      Sugester.instance_assert "date_to", date_to, Time, Date, DateTime
       Sugester.instance_assert "price", price, Numeric
       Sugester.instance_assert "name", name, String, Symbol
 
