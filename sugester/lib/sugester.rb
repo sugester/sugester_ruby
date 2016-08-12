@@ -4,7 +4,7 @@ require 'digest'
 
 module Sugester
 
-  VERSION = "0.5.0"
+  VERSION = "0.5.1"
 
   def self.assert(msg, v)
     raise StandardError.new(msg) unless v
