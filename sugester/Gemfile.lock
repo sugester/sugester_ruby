@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    sugester (0.5.1)
+    sugester (0.5.2)
       activesupport
       aws-sdk (~> 2)
 

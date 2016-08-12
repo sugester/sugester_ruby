@@ -4,11 +4,18 @@ require 'digest'
 
 module Sugester
 
-  VERSION = "0.5.2"
+  VERSION = "0.5.3"
+
+  private
+
+  def self.puts_warning msg
+    $stderr.puts("WARNING: #{msg}, sugester #{VERSION}")
+  end
 
   def self.assert(msg, v)
-    $stderr.puts("WARNING: #{msg}, sugester #{VERSION}") unless v
+    puts_warning msg unless v
   end
+
   def self.instance_assert(variable_name, variable, *klasses)
     assert(
       "#{variable_name} must be instance of #{klasses.join(" or ")}",
@@ -16,7 +23,13 @@ module Sugester
     )
   end
 
+  public
+
   class SugesterQueue
+
+    def self.secret_corrupted_warning
+      Sugester.puts_warning "Secret corrupted. Visit sugester to get valid data."
+    end
 
     private
 
@@ -34,10 +47,11 @@ module Sugester
       return crypt
     end
 
-    def config(property)
+    def config(property, throwable = false)
       JSON.parse(SugesterQueue.decrypt(@secret)).deep_symbolize_keys[property]
-    rescue JSON::ParserError => e
-      raise "secret corrupted"
+    rescue StandardError => e
+      SugesterQueue.secret_corrupted_warning
+      nil
     end
 
 
@@ -49,13 +63,17 @@ module Sugester
 
     def raw_push(msg)
       #TODO max length
-      @sqs.send_message({
-        queue_url: config(:url),
-        message_body: msg.merge({
-            token: config(:token),
-            prefix: config(:prefix),
-          }).to_json,
-      })
+      if @sqs
+        @sqs.send_message({
+          queue_url: config(:url),
+          message_body: msg.merge({
+              token: config(:token),
+              prefix: config(:prefix),
+            }).to_json,
+        })
+      else
+        SugesterQueue.secret_corrupted_warning
+      end
     end
 
     MSG_KINDS = [:activity, :property, :payment]
@@ -63,7 +81,8 @@ module Sugester
 
     def initialize(secret)
       @secret = secret
-      @sqs = Aws::SQS::Client.new(config(:config))
+      c = config(:config)
+      @sqs = Aws::SQS::Client.new(config(:config)) if c
     end
 
     def activity(client_id, name, options = {})
