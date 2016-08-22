@@ -1,11 +1,37 @@
-require "sugester/version"
 require 'aws-sdk'
 require 'active_support/all'
 require 'digest'
 
 module Sugester
 
+  VERSION = "0.5.4"
+
+  private
+
+  def self.puts_warning msg
+    $stderr.puts("WARNING: #{msg}, sugester #{VERSION}")
+  end
+
+  def self.assert(msg, v)
+    puts_warning msg unless v
+  end
+
+  def self.instance_assert(variable_name, variable, *klasses)
+    assert(
+      "#{variable_name} must be instance of #{klasses.join(" or ")}",
+      klasses.reduce(false){|acc, klass| acc || (variable.is_a? klass)}
+    )
+  end
+
+  public
+
   class SugesterQueue
+
+    def self.secret_corrupted_warning
+      Sugester.puts_warning "Secret corrupted. Visit sugester to get valid data."
+    end
+
+    private
 
     def self.decrypt(msg)
       begin
@@ -21,30 +47,68 @@ module Sugester
       return crypt
     end
 
-    def config(property)
+    def config(property, throwable = false)
       JSON.parse(SugesterQueue.decrypt(@secret)).deep_symbolize_keys[property]
-    rescue JSON::ParserError => e
-      raise "secret corrupted"
+    rescue StandardError => e
+      SugesterQueue.secret_corrupted_warning
+      nil
     end
+
+
+    def push(kind, client_id, msg)
+      Sugester.assert "unknown kind", MSG_KINDS.include?(kind)
+      Sugester.instance_assert "client_id", client_id, Integer
+      raw_push msg.merge({
+        client_id: client_id,
+        kind: kind,
+        vsn: VERSION,
+      })
+    end
+
+    def raw_push(msg)
+      #TODO max length
+      if @sqs
+        @sqs.send_message({
+          queue_url: config(:url),
+          message_body: msg.merge({
+              token: config(:token),
+              prefix: config(:prefix),
+            }).to_json,
+        })
+      else
+        SugesterQueue.secret_corrupted_warning
+      end
+    end
+
+    MSG_KINDS = [:activity, :property, :payment]
+    public
 
     def initialize(secret)
       @secret = secret
-      @sqs = Aws::SQS::Client.new(config(:config))
+      c = config(:config)
+      @sqs = Aws::SQS::Client.new(config(:config)) if c
     end
 
-    def activity(client_id, activity_name, options = {})
-      #TODO assert client_id
-      msg = {
-        activity: activity_name,
-        client_id: client_id,
-        token: config(:token),
-        prefix: config(:prefix),
-      }
-      #TODO max length
-      @sqs.send_message({
-        queue_url: config(:url),
-        message_body: msg.to_json,
-      })
+    def activity(client_id, name, options = {})
+      Sugester.instance_assert "name", name, String, Symbol
+      push :activity, client_id, {name: name}
+    end
+
+    def property(client_id, options)
+      #options.enum do |name, value|
+      #  Sugester.instance_assert "name", name, String, Symbol
+      #  Sugester.instance_assert "value", value, String, Symbol, Numeric, Time, DateTime, Date
+      #end
+      push :property, client_id, {options: options}
+    end
+
+    def payment(client_id, name, price, date_from, date_to)
+      Sugester.instance_assert "date_from", date_from, Time, Date, DateTime
+      Sugester.instance_assert "date_to", date_to, Time, Date, DateTime
+      Sugester.instance_assert "price", price, Numeric
+      Sugester.instance_assert "name", name, String, Symbol
+
+      push :payment, client_id, {price: price, from: date_from, to: date_to, name: name}
     end
   end
 
@@ -52,8 +116,24 @@ module Sugester
     @@singleton = SugesterQueue.new *args
   end
 
-  def self.activity *args
-    @@singleton.activity *args
+
+  def self.singleton_initialized?
+    assert("uninitialized singleton. run Sugester.init_singleton", @@singleton)
+  end
+
+  def self.activity(*args)
+    singleton_initialized?
+    @@singleton.activity(*args)
+  end
+
+  def self.property(*args)
+    singleton_initialized?
+    @@singleton.property(*args)
+  end
+
+  def self.payment(*args)
+    singleton_initialized?
+    @@singleton.payment(*args)
   end
 
 end
