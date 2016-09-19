@@ -4,7 +4,7 @@ require 'digest'
 
 module Sugester
 
-  VERSION = "0.5.4"
+  VERSION = "0.5.5"
 
   private
 
@@ -57,7 +57,7 @@ module Sugester
 
     def push(kind, client_id, msg)
       Sugester.assert "unknown kind", MSG_KINDS.include?(kind)
-      Sugester.instance_assert "client_id", client_id, Integer
+      Sugester.assert "client_id cannot be blank", client_id.present?
       raw_push msg.merge({
         client_id: client_id,
         kind: kind,

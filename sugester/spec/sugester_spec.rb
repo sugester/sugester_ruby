@@ -11,15 +11,18 @@ describe "valid secret" do
     it 'activity' do
       subject.activity 1, "test_activity_msg"
       subject.activity 2, :test_activity_msg
+      subject.activity "aaa", :test_activity_msg
       expect { subject.activity 1, 1 }.to err
       expect { subject.activity nil, "test_msg" }.to err
       expect { subject.activity nil, 1 }.to err
+      expect { subject.activity "", 1 }.to err
     end
 
     it 'property' do
       subject.property 1, {}
       subject.property 1, {a: 1, "b": 1}
       subject.property 1, {a: DateTime.now, "b": 1}
+      subject.property "a1", {a: DateTime.now, "b": 1}
       expect { subject.property nil, nil }.to err
     end
 
@@ -28,9 +31,11 @@ describe "valid secret" do
       d2 = DateTime.now + 1.days
       subject.payment 1, :payment_name, 1.99, d, d2
       subject.payment 3, "payment_name2", 199, d, d2
+      subject.payment "a3", "payment_name2", 199, d, d2
       expect{ subject.payment 3, "payment_name2", nil, d, d2 }.to err
       expect{ subject.payment 3, "payment_name2", 1, nil, d2 }.to err
       expect{ subject.payment 3, "payment_name2", 1, d, nil }.to err
+      expect{ subject.payment "", "payment_name2", 199, d, d2 }.to err
     end
   end
 end
@@ -57,19 +62,23 @@ describe "invalid secret" do
       expect { subject.activity 1, 1 }.to err
       expect { subject.activity nil, "test_msg" }.to err
       expect { subject.activity nil, 1 }.to err
+      expect { subject.activity "", 1 }.to err
     end
 
     it 'property' do
       expect { subject.property 1, {} }.to err
+      expect { subject.property "", {} }.to err
       expect { subject.property 1, {a: 1, "b": 1} }.to err
       expect { subject.property 1, {a: DateTime.now, "b": 1} }.to err
       expect { subject.property nil, nil }.to err
+      expect { subject.property "", nil }.to err
     end
 
     it 'payment' do
       d = Time.now
       d2 = DateTime.now + 1.days
       expect { subject.payment 1, :payment_name, 1.99, d, d2 }.to err
+      expect { subject.payment "", :payment_name, 1.99, d, d2 }.to err
       expect { subject.payment 3, "payment_name2", 199, d, d2 }.to err
       expect { subject.payment 3, "payment_name2", nil, d, d2 }.to err
       expect { subject.payment 3, "payment_name2", 1, nil, d2 }.to err
