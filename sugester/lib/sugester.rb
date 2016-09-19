@@ -4,7 +4,7 @@ require 'digest'
 
 module Sugester
 
-  VERSION = "0.5.5"
+  VERSION = "0.6.1"
 
   private
 
@@ -83,32 +83,41 @@ module Sugester
     MSG_KINDS = [:activity, :property, :payment]
     public
 
-    def initialize(secret)
-      @secret = secret
-      c = config(:config)
-      @sqs = Aws::SQS::Client.new(config(:config)) if c
+    def initialize(secret, enabled: true)
+      @enabled = enabled
+      if @enabled
+        @secret = secret
+        c = config(:config)
+        @sqs = Aws::SQS::Client.new(config(:config)) if c
+      end
     end
 
     def activity(client_id, name, options = {})
-      Sugester.instance_assert "name", name, String, Symbol
-      push :activity, client_id, {name: name}
+      if @enabled
+        Sugester.instance_assert "name", name, String, Symbol
+        push :activity, client_id, {name: name}
+      end
     end
 
     def property(client_id, options)
-      #options.enum do |name, value|
-      #  Sugester.instance_assert "name", name, String, Symbol
-      #  Sugester.instance_assert "value", value, String, Symbol, Numeric, Time, DateTime, Date
-      #end
-      push :property, client_id, {options: options}
+      if @enabled
+        #options.enum do |name, value|
+        #  Sugester.instance_assert "name", name, String, Symbol
+        #  Sugester.instance_assert "value", value, String, Symbol, Numeric, Time, DateTime, Date
+        #end
+        push :property, client_id, {options: options}
+      end
     end
 
     def payment(client_id, name, price, date_from, date_to)
-      Sugester.instance_assert "date_from", date_from, Time, Date, DateTime
-      Sugester.instance_assert "date_to", date_to, Time, Date, DateTime
-      Sugester.instance_assert "price", price, Numeric
-      Sugester.instance_assert "name", name, String, Symbol
+      if @enabled
+        Sugester.instance_assert "date_from", date_from, Time, Date, DateTime
+        Sugester.instance_assert "date_to", date_to, Time, Date, DateTime
+        Sugester.instance_assert "price", price, Numeric
+        Sugester.instance_assert "name", name, String, Symbol
 
-      push :payment, client_id, {price: price, from: date_from, to: date_to, name: name}
+        push :payment, client_id, {price: price, from: date_from, to: date_to, name: name}
+      end
     end
   end
 
