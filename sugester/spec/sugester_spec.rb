@@ -86,3 +86,41 @@ describe "invalid secret" do
     end
   end
 end
+
+describe "disabled" do
+  subject { Sugester::SugesterQueue.new secret, enabled: false }
+  subject { Sugester.init_singleton secret, enabled: false; Sugester }
+  subject { Sugester.init_singleton "secret", enabled: false; Sugester }
+
+  describe '#push msg funs' do
+    it 'activity' do
+      subject.activity 1, "test_activity_msg"
+      subject.activity 2, :test_activity_msg
+      subject.activity "aaa", :test_activity_msg
+      subject.activity 1, 1
+      subject.activity nil, "test_msg"
+      subject.activity nil, 1
+      subject.activity "", 1
+    end
+
+    it 'property' do
+      subject.property 1, {}
+      subject.property 1, {a: 1, "b": 1}
+      subject.property 1, {a: DateTime.now, "b": 1}
+      subject.property "a1", {a: DateTime.now, "b": 1}
+      subject.property nil, nil
+    end
+
+    it 'payment' do
+      d = Time.now
+      d2 = DateTime.now + 1.days
+      subject.payment 1, :payment_name, 1.99, d, d2
+      subject.payment 3, "payment_name2", 199, d, d2
+      subject.payment "a3", "payment_name2", 199, d, d2
+      subject.payment 3, "payment_name2", nil, d, d2
+      subject.payment 3, "payment_name2", 1, nil, d2
+      subject.payment 3, "payment_name2", 1, d, nil
+      subject.payment "", "payment_name2", 199, d, d2
+    end
+  end
+end
