@@ -4,7 +4,7 @@ require 'digest'
 
 module Sugester
 
-  VERSION = "0.7.1"
+  VERSION = "0.7.2"
 
   def self.init_module
     @@disabled = false
@@ -27,6 +27,15 @@ module Sugester
       "#{variable_name} must be instance of #{klasses.join(" or ")}",
       klasses.reduce(false){|acc, klass| acc || (variable.is_a? klass)}
     )
+  end
+
+  def self.safe_exec
+    begin
+      yield
+    rescue StandardError => e
+      puts_warning "ERROR: e.message"
+      nil
+    end
   end
 
   public
@@ -74,13 +83,14 @@ module Sugester
     def raw_push(msg)
       #TODO max length
       if @sqs
-        @sqs.send_message({
+        aws_msg = {
           queue_url: config(:url),
           message_body: msg.merge({
               token: config(:token),
               prefix: config(:prefix),
             }).to_json,
-        })
+        }
+        Sugester.safe_exec { @sqs.send_message aws_msg }
       else
         SugesterQueue.secret_corrupted_warning
       end
@@ -98,7 +108,9 @@ module Sugester
       if @enabled
         @secret = secret
         c = config(:config)
-        @sqs = Aws::SQS::Client.new(config(:config)) if c
+        if c
+          @sqs = Sugester.safe_exec { Aws::SQS::Client.new c }
+        end
       end
     end
 
