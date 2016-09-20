@@ -1,6 +1,8 @@
 require 'spec_helper'
 require 'yaml'
-secret = YAML.load_file("secret.yml")["secret"]
+secret_file = YAML.load_file("secret.yml")
+secret = secret_file["secret"]
+secret_bad_key = secret_file["secret_bad_key"]
 
 describe "auto init_module" do
   it do
@@ -9,6 +11,14 @@ describe "auto init_module" do
   end
 end
 
+describe "AWS login bad key" do
+  it do
+    expect{
+      Sugester.init_singleton secret_bad_key
+      Sugester.activity 1, "test_activity_msg"
+    }.to output(/ERROR/).to_stderr
+  end
+end
 
 [
   lambda {
