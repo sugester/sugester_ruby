@@ -2,12 +2,31 @@ require 'spec_helper'
 require 'yaml'
 secret = YAML.load_file("secret.yml")["secret"]
 
-describe "valid secret" do
-  subject { Sugester::SugesterQueue.new secret }
-  subject { Sugester.init_singleton secret; Sugester }
-  let(:err) { output(/WARNING/).to_stderr }
+describe "auto init_module" do
+  it do
+    expect( Sugester.singleton ).to eq(nil)
+    expect( Sugester.disabled ).to eq(false)
+  end
+end
 
-  describe '#push msg funs' do
+
+[
+  lambda {
+    Sugester.init_module
+    Sugester::SugesterQueue.new secret
+  },
+  lambda {
+    Sugester.init_module
+    Sugester.init_singleton secret
+    Sugester
+  },
+].each_with_index do |s,i|
+
+  describe "valid secret #{i}" do
+
+    let(:err) { output(/WARNING/).to_stderr }
+    subject { s[] }
+
     it 'activity' do
       subject.activity 1, "test_activity_msg"
       subject.activity 2, :test_activity_msg
@@ -37,25 +56,28 @@ describe "valid secret" do
       expect{ subject.payment 3, "payment_name2", 1, d, nil }.to err
       expect{ subject.payment "", "payment_name2", 199, d, d2 }.to err
     end
+
   end
 end
 
-describe "invalid secret" do
 
-  let(:err) { output(/Secret corrupted/).to_stderr }
+[
+  lambda {
+    Sugester.init_module
+    Sugester::SugesterQueue.new "secret"
+  },
+  lambda {
+    Sugester.init_module
+    Sugester.init_singleton "secret"
+    Sugester
+  },
+].each_with_index do |s,i|
 
-  subject {
-    s = nil
-    expect { s = Sugester::SugesterQueue.new "secret" }.to err
-    s
-  }
-  subject {
-    s = nil
-    expect { s = Sugester.init_singleton "secret"; Sugester }.to err
-    s
-  }
+  describe "invalid secret #{i}" do
 
-  describe '#push msg funs' do
+    let(:err) { output(/Secret corrupted/).to_stderr }
+    subject { x = nil ; expect{ x = s[] }.to err ; x }
+
     it 'activity' do
       expect { subject.activity 1, "test_activity_msg" }.to err
       expect { subject.activity 2, :test_activity_msg }.to err
@@ -84,43 +106,123 @@ describe "invalid secret" do
       expect { subject.payment 3, "payment_name2", 1, nil, d2 }.to err
       expect { subject.payment 3, "payment_name2", 1, d, nil }.to err
     end
+
   end
 end
 
-describe "disabled" do
-  subject { Sugester::SugesterQueue.new secret, enabled: false }
-  subject { Sugester.init_singleton secret, enabled: false; Sugester }
-  subject { Sugester.init_singleton "secret", enabled: false; Sugester }
+[
+  lambda {
+    Sugester.init_module
+    Sugester
+  },
+].each_with_index do |s,i|
 
-  describe '#push msg funs' do
+  describe "uninitialized #{i}" do
+
+    let(:err) { output(/uninitialized singleton/).to_stderr }
+    subject { s[] }
+
     it 'activity' do
-      subject.activity 1, "test_activity_msg"
-      subject.activity 2, :test_activity_msg
-      subject.activity "aaa", :test_activity_msg
-      subject.activity 1, 1
-      subject.activity nil, "test_msg"
-      subject.activity nil, 1
-      subject.activity "", 1
+      expect { subject.activity 1, "test_activity_msg" }.to err
+      expect { subject.activity 2, :test_activity_msg }.to err
+      expect { subject.activity 1, 1 }.to err
+      expect { subject.activity nil, "test_msg" }.to err
+      expect { subject.activity nil, 1 }.to err
+      expect { subject.activity "", 1 }.to err
     end
 
     it 'property' do
-      subject.property 1, {}
-      subject.property 1, {a: 1, "b": 1}
-      subject.property 1, {a: DateTime.now, "b": 1}
-      subject.property "a1", {a: DateTime.now, "b": 1}
-      subject.property nil, nil
+      expect { subject.property 1, {} }.to err
+      expect { subject.property "", {} }.to err
+      expect { subject.property 1, {a: 1, "b": 1} }.to err
+      expect { subject.property 1, {a: DateTime.now, "b": 1} }.to err
+      expect { subject.property nil, nil }.to err
+      expect { subject.property "", nil }.to err
     end
 
     it 'payment' do
       d = Time.now
       d2 = DateTime.now + 1.days
-      subject.payment 1, :payment_name, 1.99, d, d2
-      subject.payment 3, "payment_name2", 199, d, d2
-      subject.payment "a3", "payment_name2", 199, d, d2
-      subject.payment 3, "payment_name2", nil, d, d2
-      subject.payment 3, "payment_name2", 1, nil, d2
-      subject.payment 3, "payment_name2", 1, d, nil
-      subject.payment "", "payment_name2", 199, d, d2
+      expect { subject.payment 1, :payment_name, 1.99, d, d2 }.to err
+      expect { subject.payment "", :payment_name, 1.99, d, d2 }.to err
+      expect { subject.payment 3, "payment_name2", 199, d, d2 }.to err
+      expect { subject.payment 3, "payment_name2", nil, d, d2 }.to err
+      expect { subject.payment 3, "payment_name2", 1, nil, d2 }.to err
+      expect { subject.payment 3, "payment_name2", 1, d, nil }.to err
     end
+
+  end
+end
+
+[
+  lambda {
+    Sugester.init_module
+    Sugester::SugesterQueue.new secret, enabled: false
+  },
+  lambda {
+    Sugester.init_module
+    Sugester.init_singleton secret, enabled: false
+    Sugester
+  },
+  lambda {
+    Sugester.init_module
+    Sugester.init_singleton "secret", enabled: false
+    Sugester
+  },
+  lambda {
+    Sugester.init_module
+    Sugester.disabled = true
+    Sugester.init_singleton "secret"
+    Sugester
+  },
+  lambda {
+    Sugester.init_module
+    Sugester.init_singleton secret
+    Sugester.disabled = true
+    Sugester
+  },
+].each_with_index do |s,i|
+
+  describe "disabled #{i}" do
+
+    let(:clean_output) { output("").to_stderr }
+    subject { s[] }
+
+    it 'activity' do
+      expect {
+        subject.activity 1, "test_activity_msg"
+        subject.activity 2, :test_activity_msg
+        subject.activity "aaa", :test_activity_msg
+        subject.activity 1, 1
+        subject.activity nil, "test_msg"
+        subject.activity nil, 1
+        subject.activity "", 1
+      }.to clean_output
+    end
+
+    it 'property' do
+      expect {
+        subject.property 1, {}
+        subject.property 1, {a: 1, "b": 1}
+        subject.property 1, {a: DateTime.now, "b": 1}
+        subject.property "a1", {a: DateTime.now, "b": 1}
+        subject.property nil, nil
+      }.to clean_output
+    end
+
+    it 'payment' do
+      d = Time.now
+      d2 = DateTime.now + 1.days
+      expect {
+        subject.payment 1, :payment_name, 1.99, d, d2
+        subject.payment 3, "payment_name2", 199, d, d2
+        subject.payment "a3", "payment_name2", 199, d, d2
+        subject.payment 3, "payment_name2", nil, d, d2
+        subject.payment 3, "payment_name2", 1, nil, d2
+        subject.payment 3, "payment_name2", 1, d, nil
+        subject.payment "", "payment_name2", 199, d, d2
+      }.to clean_output
+    end
+
   end
 end

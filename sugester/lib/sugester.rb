@@ -4,7 +4,13 @@ require 'digest'
 
 module Sugester
 
-  VERSION = "0.6.1"
+  VERSION = "0.7.1"
+
+  def self.init_module
+    @@disabled = false
+    @@singleton = nil
+  end
+  init_module
 
   private
 
@@ -83,7 +89,11 @@ module Sugester
     MSG_KINDS = [:activity, :property, :payment]
     public
 
-    def initialize(secret, enabled: true)
+    def disabled= v
+      @enabled = !v
+    end
+
+    def initialize(secret, enabled: !Sugester.disabled)
       @enabled = enabled
       if @enabled
         @secret = secret
@@ -121,6 +131,21 @@ module Sugester
     end
   end
 
+  def self.singleton
+    @@singleton
+  end
+
+  def self.disabled
+    @@disabled
+  end
+
+  def self.disabled= v
+    @@disabled = v
+    if @@singleton
+      @@singleton.disabled = v
+    end
+  end
+
   def self.init_singleton *args
     @@singleton = SugesterQueue.new *args
   end
@@ -132,17 +157,17 @@ module Sugester
 
   def self.activity(*args)
     singleton_initialized?
-    @@singleton.activity(*args)
+    @@singleton.activity(*args) if @@singleton
   end
 
   def self.property(*args)
     singleton_initialized?
-    @@singleton.property(*args)
+    @@singleton.property(*args) if @@singleton
   end
 
   def self.payment(*args)
     singleton_initialized?
-    @@singleton.payment(*args)
+    @@singleton.payment(*args) if @@singleton
   end
 
 end
