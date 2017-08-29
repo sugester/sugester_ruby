@@ -52,7 +52,7 @@ module Sugester
       begin
         cipher = OpenSSL::Cipher.new('AES-128-ECB')
         cipher.decrypt()
-        cipher.key = "JKLGHJFHGFUOYTIUKYGbhjgvcutytfiCktyD845^8^f6d%df65*I"
+        cipher.key = "JKLGHJFHGFUOYTIU"
         tempkey = Base64.decode64(URI.decode(msg))
         crypt = cipher.update(tempkey)
         crypt << cipher.final()
